@@ -45,6 +45,12 @@ exports.handler = async (event) => {
     let result;
 
     switch (action) {
+      // 驗證密碼
+      case "verify": {
+        result = { ok: true };
+        break;
+      }
+
       // 查詢資料庫
       case "query": {
         const params = { database_id };

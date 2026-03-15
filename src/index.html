@@ -166,20 +166,10 @@ async function tryLogin() {
   err.textContent = '';
   
   try {
-    // 用一個簡單查詢測試密碼是否正確
-    const testDbId = Object.values(DB_IDS).find(id => id);
-    
-    if (!testDbId) {
-      // 如果還沒設定 DB_IDS，就直接驗證密碼格式
-      PASSWORD = pw;
-      showDashboard();
-      return;
-    }
-    
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Dashboard-Auth': pw },
-      body: JSON.stringify({ action: 'query', database_id: testDbId, page_size: 1 })
+      body: JSON.stringify({ action: 'verify' })
     });
     
     if (res.status === 401) {
@@ -189,9 +179,15 @@ async function tryLogin() {
       return;
     }
     
-    if (!res.ok) {
-      const data = await res.json();
-      err.textContent = data.error || '連線錯誤';
+    PASSWORD = pw;
+    sessionStorage.setItem('yc_pw', pw);
+    showDashboard();
+  } catch (e) {
+    err.textContent = '無法連線到伺服器';
+    btn.disabled = false;
+    btn.textContent = '進入';
+  }
+}
       btn.disabled = false;
       btn.textContent = '進入';
       return;
