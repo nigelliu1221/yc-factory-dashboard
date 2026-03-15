@@ -148,6 +148,15 @@ const DB_IDS = {
 const API_URL = '/.netlify/functions/notion-proxy';
 let PASSWORD = '';
 let CACHED_DATA = null;
+let CURRENT_TAB = '總覽'; // 當前選的品牌 tab
+
+const BRAND_MAP = {
+  '總覽': null,
+  '粹美': '粹美',
+  '岸頭': '岸頭', 
+  '風管': '風管',
+  'DICAS': 'DICAS'
+};
 
 // ===== PASSWORD GATE =====
 document.getElementById('pwInput').addEventListener('keydown', (e) => {
@@ -343,16 +352,69 @@ function renderError(msg) {
 }
 
 function renderDashboard(data) {
+  const currentBrand = CURRENT_TAB === '總覽' ? null : CURRENT_TAB;
+  
   // 解析資料
-  const parts = getPages(data, 'parts_master');
-  const orders = getPages(data, 'production_orders');
-  const stations = getPages(data, 'station_progress');
-  const outsource = getPages(data, 'outsource_tracking');
-  const issues = getPages(data, 'issues');
-  const suppliers = getPages(data, 'suppliers');
-  const brands = getPages(data, 'brands');
-  const users = getPages(data, 'bot_users');
-  const quotes = getPages(data, 'quotations');
+  let parts = getPages(data, 'parts_master');
+  let orders = getPages(data, 'production_orders');
+  let stations = getPages(data, 'station_progress');
+  let outsource = getPages(data, 'outsource_tracking');
+  let issues = getPages(data, 'issues');
+  let suppliers = getPages(data, 'suppliers');
+  let brands = getPages(data, 'brands');
+  let users = getPages(data, 'bot_users');
+  let quotes = getPages(data, 'quotations');
+
+  // ===== 按品牌篩選 =====
+  if (currentBrand) {
+    // 零件：用 brand_tags 篩選
+    parts = parts.filter(p => {
+      const tags = getProp(p, 'brand_tags') || [];
+      return tags.includes(currentBrand);
+    });
+    
+    // 工單：透過 product -> line -> brand 篩選（簡化：用產品名稱或備註判斷）
+    orders = orders.filter(o => {
+      const notes = getProp(o, 'notes') || '';
+      const name = getProp(o, 'order_number') || '';
+      // 簡化：從工單名稱或備註判斷品牌
+      if (currentBrand === '粹美') return name.includes('CM') || notes.includes('粹美');
+      if (currentBrand === '岸頭') return name.includes('AT') || notes.includes('岸頭');
+      if (currentBrand === '風管') return name.includes('FK') || notes.includes('風管');
+      if (currentBrand === 'DICAS') return name.includes('DC') || notes.includes('DICAS');
+      return true;
+    });
+    
+    // 外包：用零件的品牌篩選
+    outsource = outsource.filter(o => {
+      const partName = getProp(o, 'part_name') || '';
+      // 簡化：用零件名稱判斷
+      if (currentBrand === '粹美') return partName.includes('CM') || partName.includes('花生') || partName.includes('踩踩');
+      if (currentBrand === '岸頭') return partName.includes('AT') || partName.includes('PenN') || partName.includes('筆');
+      if (currentBrand === '風管') return partName.includes('FK') || partName.includes('風管');
+      if (currentBrand === 'DICAS') return partName.includes('DC');
+      return true;
+    });
+    
+    // 異常：用描述判斷品牌
+    issues = issues.filter(i => {
+      const desc = getProp(i, 'description') || '';
+      if (currentBrand === '粹美') return desc.includes('粹美') || desc.includes('花生') || desc.includes('踩踩');
+      if (currentBrand === '岸頭') return desc.includes('岸頭') || desc.includes('PenN') || desc.includes('筆');
+      if (currentBrand === '風管') return desc.includes('風管');
+      if (currentBrand === 'DICAS') return desc.includes('DICAS');
+      return true;
+    });
+    
+    // 人員：用負責品牌篩選
+    users = users.filter(u => {
+      const respBrands = getProp(u, 'responsible_brands') || [];
+      return respBrands.includes(currentBrand);
+    });
+    
+    // 品牌列表：只顯示當前選的
+    brands = brands.filter(b => getProp(b, 'brand_name') === currentBrand);
+  }
 
   // === 計算 KPIs ===
   const activeOrders = orders.filter(o => {
@@ -478,10 +540,14 @@ function renderDashboard(data) {
   `;
 }
 
-// Tab switching (visual only for now)
+// Tab switching - now filters data by brand
 function switchTab(btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
   btn.classList.add('on');
+  CURRENT_TAB = btn.textContent;
+  if (CACHED_DATA) {
+    renderDashboard(CACHED_DATA);
+  }
 }
 </script>
 
