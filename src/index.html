@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>益成金屬 DICAS — 工廠儀表板</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏭</text></svg>">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap');
+  :root{--bg:#f5f5f7;--card:#fff;--border:rgba(0,0,0,.06);--bs:rgba(0,0,0,.1);--t1:#1d1d1f;--t2:#424245;--t3:#86868b;--t4:#aeaeb2;--blue:#0071e3;--green:#34c759;--orange:#ff9500;--red:#ff3b30;--purple:#af52de;--teal:#5ac8fa;--sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.03);--r:16px}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,'Noto Sans TC','Helvetica Neue',sans-serif;background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased}
+  #gate{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+  .gate-box{text-align:center;max-width:320px;padding:40px}
+  .gate-logo{font-size:48px;margin-bottom:16px}.gate-title{font-size:22px;font-weight:600;margin-bottom:4px}
+  .gate-sub{font-size:13px;color:var(--t3);margin-bottom:24px}
+  .gate-input{width:100%;padding:12px 16px;border:1px solid var(--bs);border-radius:10px;font-size:15px;font-family:inherit;outline:none;text-align:center;background:var(--card);transition:.2s}
+  .gate-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.1)}
+  .gate-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:12px;font-family:inherit;transition:.2s}
+  .gate-btn:hover{background:#005bb5}.gate-btn:disabled{background:var(--t4);cursor:not-allowed}
+  .gate-err{color:var(--red);font-size:12px;margin-top:8px;min-height:16px}
+  #loading{display:none;position:fixed;inset:0;background:var(--bg);z-index:9998;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+  .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .load-text{font-size:14px;color:var(--t3)}
+  #dashboard{display:none}
+  .nav{background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:.5px solid var(--bs);position:sticky;top:0;z-index:100;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:52px}
+  .nav-l{display:flex;align-items:center;gap:16px}
+  .logo{font-size:17px;font-weight:600;letter-spacing:-.3px}.logo span{color:var(--t3);font-weight:400}
+  .tabs{display:flex;gap:2px}
+  .tab{padding:6px 12px;border-radius:20px;font-size:13px;font-weight:500;border:none;background:0;color:var(--t3);cursor:pointer;transition:.2s;font-family:inherit}
+  .tab:hover{color:var(--t2);background:rgba(0,0,0,.03)}.tab.on{color:var(--t1);background:rgba(0,0,0,.05)}
+  .nav-r{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--t3)}
+  .dot-live{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(52,199,89,.3)}50%{box-shadow:0 0 0 5px rgba(52,199,89,0)}}
+  .refresh-btn{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:500;border:1px solid var(--bs);background:var(--card);color:var(--t2);cursor:pointer;font-family:inherit;transition:.2s;display:flex;align-items:center;gap:3px}
+  .refresh-btn:hover{background:rgba(0,0,0,.03)}.refresh-btn.spinning .ri{animation:spin .8s linear infinite}
+  .ri{display:inline-block}
+  .main{padding:16px 24px 48px;max-width:1440px;margin:0 auto}
+  .sec{font-size:18px;font-weight:600;letter-spacing:-.3px;margin-bottom:10px}
+  .g{display:grid;gap:10px}.g5{grid-template-columns:repeat(5,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1fr 1fr}
+  .mb{margin-bottom:16px}
+  .c{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:.5px solid var(--border);overflow:hidden;transition:.25s}
+  .c:hover{box-shadow:0 4px 14px rgba(0,0,0,.07);transform:translateY(-1px)}
+  .cp{padding:18px}.cs{padding:14px}
+  .cl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:5px}
+  .kv{font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1.1}
+  .ks{font-size:11px;color:var(--t3);margin-top:3px}
+  .al{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;font-size:11px;font-weight:500;margin-bottom:6px}
+  .al.w{background:rgba(255,149,0,.08);color:#b36800}.al.d{background:rgba(255,59,48,.06);color:var(--red)}.al.i{background:rgba(0,113,227,.06);color:var(--blue)}.al.ok{background:rgba(52,199,89,.06);color:#1b8a34}
+  .al strong{font-weight:600}.al-t{flex:1}.al-b{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;flex-shrink:0}
+  .empty{padding:24px;text-align:center;color:var(--t4);font-size:12px}
+  .fbadge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:12px;cursor:default}
+  .fbadge .x{opacity:.4;cursor:pointer;margin-left:4px}
+  .row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--border);font-size:11px}
+  .row:last-child{border-bottom:0}
+  .row-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .brand-card{padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+  .brand-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .bar-bg{height:4px;border-radius:2px;background:rgba(0,0,0,.05);overflow:hidden}.bar-f{height:100%;border-radius:2px}
+  .tag{font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;flex-shrink:0;white-space:nowrap}
+  @media(max-width:1100px){.g5,.g4{grid-template-columns:repeat(2,1fr)}.g3,.g2{grid-template-columns:1fr}}
+  @media(max-width:600px){.main{padding:12px 16px}.nav{padding:0 16px}}
+</style>
+</head>
+<body>
+<div id="gate"><div class="gate-box"><div class="gate-logo">🏭</div><div class="gate-title">益成金屬 DICAS</div><div class="gate-sub">工廠儀表板 — 請輸入密碼</div><input type="password" class="gate-input" id="pwInput" placeholder="密碼" autofocus><button class="gate-btn" id="pwBtn" onclick="tryLogin()">進入</button><div class="gate-err" id="pwErr"></div></div></div>
+<div id="loading"><div class="spinner"></div><div class="load-text">正在從 Notion 載入資料...</div></div>
+<div id="dashboard">
+  <div class="nav">
+    <div class="nav-l">
+      <div class="logo">益成金屬 <span>DICAS</span></div>
+      <div class="tabs" id="tabBar"></div>
+    </div>
+    <div class="nav-r">
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshData()"><span class="ri">↻</span> 更新</button>
+      <div class="dot-live"></div>
+      <span id="timeDisplay"></span>
+    </div>
+  </div>
+  <div class="main" id="mainContent"></div>
+</div>
+<script>
+const DB_IDS={brands:'3241d214-f129-816f-9b41-f860b23b96f9',product_lines:'3241d214-f129-81ab-a6b4-c0b09af76d7e',products:'3241d214-f129-8187-8f34-e35a0a8f6d3a',parts_master:'3241d214-f129-81e6-9c18-e1f4a84a541f',bom:'3241d214-f129-8108-9e07-dd2bb3460c75',inventory_log:'3241d214-f129-8112-b4ce-dc8ad705529d',suppliers:'3241d214-f129-814a-8f88-e0da4a69c28b',process_templates:'3241d214-f129-81c1-ba6d-f12af7f62f8f',process_steps:'3241d214-f129-81d8-b661-dacbe503c069',production_orders:'3241d214-f129-81f5-91de-d5a9920c5b07',station_progress:'3241d214-f129-8106-8888-edfa572fb650',outsource_tracking:'3241d214-f129-8123-a4c4-cf6f7699b9a8',quotations:'3241d214-f129-81ad-9152-e948f9e4c5d9',issues:'3241d214-f129-811e-9e93-d5a8a0e3842a',bot_users:'3241d214-f129-813c-a8d6-d2999fd46e51'};
+const API='/.netlify/functions/notion-proxy';
+let PW='',DATA=null,BRAND='all';
+const BC={'粹美':{c:'var(--orange)',i:'🦶',s:'珮瑄',e:'Cuimei',kw:['粹美','cuimei','花生','踩踩獸','CM-','收納袋','矽膠墊','紙罐','塑膠袋','說明書','矽膠圈']},'岸頭':{c:'var(--blue)',i:'✒️',s:'芳如',e:'Antou',kw:['岸頭','antou','PenN','AT-','筆夾','筆蓋','筆管','筆帽']},'風管':{c:'var(--teal)',i:'🔧',s:'宋姐',e:'',kw:['風管','FK-']},'DICAS':{c:'var(--purple)',i:'⭐',s:'珮瑄',e:'DICAS',kw:['DICAS','DC-']}};
+
+// === Auth ===
+document.getElementById('pwInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryLogin()});
+async function tryLogin(){
+  const pw=document.getElementById('pwInput').value,btn=document.getElementById('pwBtn'),err=document.getElementById('pwErr');
+  if(!pw){err.textContent='請輸入密碼';return}
+  btn.disabled=true;btn.textContent='驗證中...';err.textContent='';
+  try{
+    const dbId=Object.values(DB_IDS).find(id=>id);
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','X-Dashboard-Auth':pw},body:JSON.stringify(dbId?{action:'query',database_id:dbId,page_size:1}:{action:'verify'})});
+    if(r.status===401){err.textContent='密碼錯誤';btn.disabled=false;btn.textContent='進入';return}
+    if(!r.ok){const d=await r.json();err.textContent=d.error||'連線錯誤';btn.disabled=false;btn.textContent='進入';return}
+    PW=pw;sessionStorage.setItem('yc_pw',pw);boot();
+  }catch(e){err.textContent='無法連線';btn.disabled=false;btn.textContent='進入'}
+}
+(function(){const s=sessionStorage.getItem('yc_pw');if(s){PW=s;boot()}})();
+
+async function boot(){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('loading').style.display='flex';
+  buildTabs();tick();setInterval(tick,60000);
+  await load();
+  document.getElementById('loading').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+}
+function tick(){
+  const n=new Date(),d=['日','一','二','三','四','五','六'];
+  document.getElementById('timeDisplay').textContent=`週${d[n.getDay()]} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')} ・ ${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+}
+function buildTabs(){
+  const t=document.getElementById('tabBar');
+  t.innerHTML=`<button class="tab on" data-b="all" onclick="setTab(this)">總覽</button>`+Object.keys(BC).map(b=>`<button class="tab" data-b="${b}" onclick="setTab(this)">${b}</button>`).join('');
+}
+function setTab(el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');BRAND=el.dataset.b;if(DATA)render()}
+
+// === API ===
+async function query(action,params={}){
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','X-Dashboard-Auth':PW},body:JSON.stringify({action,...params})});
+  if(!r.ok)throw new Error(`API ${r.status}`);return r.json();
+}
+async function load(){
+  try{
+    const dbs={};for(const[k,v]of Object.entries(DB_IDS))if(v)dbs[k]=v;
+    if(!Object.keys(dbs).length){document.getElementById('mainContent').innerHTML='<div class="empty">請設定 Database ID</div>';return}
+    DATA=await query('dashboard_load',{database_ids:dbs});render();
+  }catch(e){document.getElementById('mainContent').innerHTML=`<div class="c cp" style="max-width:480px;margin:40px auto;text-align:center"><div style="font-size:40px;margin-bottom:10px">⚠️</div><div style="font-size:15px;font-weight:600;margin-bottom:6px">載入失敗</div><div style="font-size:12px;color:var(--t3)">${e.message}</div></div>`}
+}
+async function refreshData(){const b=document.getElementById('refreshBtn');b.classList.add('spinning');await load();b.classList.remove('spinning')}
+
+// === Helpers ===
+function gp(page,name){
+  const p=page.properties?.[name];if(!p)return null;
+  switch(p.type){
+    case'title':return p.title.map(t=>t.plain_text).join('');
+    case'rich_text':return p.rich_text.map(t=>t.plain_text).join('');
+    case'number':return p.number;
+    case'select':return p.select?.name||null;
+    case'multi_select':return p.multi_select.map(s=>s.name);
+    case'checkbox':return p.checkbox;
+    case'date':return p.date?.start||null;
+    case'formula':return p.formula.type==='number'?p.formula.number:p.formula.type==='string'?p.formula.string:null;
+    case'relation':return p.relation.map(r=>r.id);
+    case'people':return p.people.map(p=>p.name);
+    case'files':return p.files.map(f=>f.file?.url||f.external?.url);
+    default:return null;
+  }
+}
+function gps(data,key){return data?.[key]?.results||[]}
+
+function matchBrand(page,brand){
+  if(brand==='all')return true;
+  const tags=gp(page,'brand_tags');
+  if(tags&&tags.length)return tags.includes(brand);
+  const text=([gp(page,'part_name'),gp(page,'part_number'),gp(page,'product_name'),gp(page,'order_number'),gp(page,'template_name'),gp(page,'description')].filter(Boolean).join(' ')).toLowerCase();
+  return(BC[brand]?.kw||[]).some(k=>text.includes(k.toLowerCase()));
+}
+function fb(pages,brand){return brand==='all'?pages:pages.filter(p=>matchBrand(p,brand))}
+
+// === Render ===
+function render(){
+  const m=document.getElementById('mainContent');
+  const isAll=BRAND==='all';
+  const allBrands=gps(DATA,'brands'),allParts=gps(DATA,'parts_master'),allOrders=gps(DATA,'production_orders'),allOS=gps(DATA,'outsource_tracking'),allIssues=gps(DATA,'issues'),allSuppliers=gps(DATA,'suppliers'),allStations=gps(DATA,'station_progress');
+  const parts=fb(allParts,BRAND),orders=fb(allOrders,BRAND),os=fb(allOS,BRAND),issues=fb(allIssues,BRAND);
+  const activeO=orders.filter(o=>{const s=gp(o,'status');return s&&!['已結案','已完工'].includes(s)});
+  const totalT=activeO.reduce((s,o)=>s+(gp(o,'target_qty')||0),0);
+  const doneS=allStations.filter(s=>gp(s,'completed_at'));
+  const avgY=doneS.length?(doneS.reduce((s,x)=>s+(gp(x,'station_yield')||0),0)/doneS.length*100).toFixed(1):'—';
+  const activeOS=os.filter(o=>{const s=gp(o,'status');return s&&['已送出','加工中','待取回'].includes(s)});
+  const totalOS=activeOS.reduce((s,o)=>s+(gp(o,'sent_qty')||0),0);
+  const openI=issues.filter(i=>{const s=gp(i,'status');return s&&!['已解決','已結案'].includes(s)});
+  const overdueOS=activeOS.filter(o=>gp(o,'is_overdue'));
+  const dangerP=parts.filter(p=>{const s=gp(p,'stock_qty')||0,sf=gp(p,'safety_stock')||500,tr=gp(p,'in_transit_qty')||0;return s<sf&&tr===0});
+
+  let h='';
+
+  // Filter badge
+  if(!isAll){const cfg=BC[BRAND]||{};h+=`<div class="fbadge" style="background:${cfg.c}11;color:${cfg.c}">${cfg.i||'📦'} ${BRAND} ${cfg.e?'('+cfg.e+')':''} — ${cfg.s||''}<span class="x" onclick="document.querySelector('[data-b=all]').click()">✕</span></div>`}
+
+  // Alerts
+  let al='';
+  if(dangerP.length)al+=`<div class="al d"><span>🔴</span><div class="al-t"><strong>${dangerP.length} 項</strong>庫存不足 — ${dangerP.slice(0,3).map(p=>gp(p,'part_name')).join('、')}</div><div class="al-b" style="background:rgba(255,59,48,.1)">採購</div></div>`;
+  if(overdueOS.length)al+=`<div class="al d"><span>⚠️</span><div class="al-t"><strong>${overdueOS.length} 筆外包</strong>逾期未回收</div><div class="al-b" style="background:rgba(255,59,48,.1)">逾期</div></div>`;
+  if(openI.length)al+=`<div class="al w"><span>📋</span><div class="al-t"><strong>${openI.length} 筆異常</strong>待處理</div><div class="al-b" style="background:rgba(255,149,0,.15)">${openI.length}</div></div>`;
+  if(!al)al=`<div class="al ok"><span>✅</span><div class="al-t">${isAll?'所有品牌':BRAND} — 目前無緊急事項</div></div>`;
+  h+=al;
+
+  // KPIs
+  h+=`<div class="g ${isAll?'g5':'g4'} mb">
+    <div class="c cp"><div class="cl">進行中工單</div><div class="kv">${activeO.length}</div><div class="ks">${isAll?allBrands.map(b=>gp(b,'brand_name')).filter(Boolean).join(' ・ '):BRAND}</div></div>
+    <div class="c cp"><div class="cl">目標產量</div><div class="kv" style="color:var(--blue)">${totalT.toLocaleString()}</div><div class="ks">${activeO.length} 張工單</div></div>
+    <div class="c cp"><div class="cl">整體良率</div><div class="kv" style="color:var(--green)">${avgY}${avgY!=='—'?'%':''}</div><div class="ks">已完成工站</div></div>
+    <div class="c cp"><div class="cl">外包中</div><div class="kv" style="color:var(--orange)">${totalOS.toLocaleString()}</div><div class="ks">${activeOS.length} 筆</div></div>
+    ${isAll?`<div class="c cp"><div class="cl">未解決異常</div><div class="kv" style="color:var(--red)">${openI.length}</div><div class="ks">${openI.filter(i=>gp(i,'severity')==='嚴重').length} 嚴重</div></div>`:''}
+  </div>`;
+
+  // Brand cards (總覽 only)
+  if(isAll&&allBrands.length){
+    h+=`<div class="sec">品牌總覽</div><div class="g g4 mb">${allBrands.map(b=>{
+      const n=gp(b,'brand_name')||'—',cfg=BC[n]||{c:'var(--t3)',i:'📦'},st=gp(b,'status');
+      const bo=allOrders.filter(o=>matchBrand(o,n)&&!['已結案','已完工'].includes(gp(o,'status')||'')).length;
+      return`<div class="c brand-card" onclick="document.querySelector('[data-b=\\'${n}\\']')?.click()">
+        <div class="brand-icon" style="background:${cfg.c}11;color:${cfg.c}">${cfg.i}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">${n}</div><div style="font-size:10px;color:var(--t3)">${cfg.s||''} ${cfg.e?'・ '+cfg.e:''}</div></div>
+        <div style="text-align:right"><div style="font-size:18px;font-weight:700;font-family:monospace;color:${cfg.c}">${bo}</div><div style="font-size:9px;color:var(--t4)">工單</div></div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  // Details
+  h+=`<div class="sec">${isAll?'詳細資料':BRAND+' 詳細資料'}</div>`;
+
+  // Parts
+  const partsH=parts.length?parts.map(p=>{
+    const n=gp(p,'part_name')||'—',c=gp(p,'part_number')||'',s=gp(p,'stock_qty')||0,sf=gp(p,'safety_stock')||500,tr=gp(p,'in_transit_qty')||0;
+    const pct=sf>0?Math.min((s/sf)*100,100):100;
+    const danger=s<sf&&tr===0,out=tr>0;
+    const col=danger?'var(--red)':out?'var(--orange)':pct<60?'var(--orange)':'var(--green)';
+    const badge=danger?'<span style="color:var(--red);font-weight:700">!</span>':out?'<span style="color:var(--orange)">⏳</span>':'<span style="color:var(--green)">✓</span>';
+    const trH=tr>0?` <span style="color:var(--orange);font-size:8px">+${tr.toLocaleString()}</span>`:'';
+    return`<div class="row"><div style="width:14px;text-align:center;font-size:9px">${badge}</div><div style="flex:1;font-weight:500">${n} <span style="font-size:9px;color:var(--t4);font-family:monospace">${c}</span></div><div style="width:48px"><div class="bar-bg"><div class="bar-f" style="width:${pct}%;background:${col}"></div></div></div><div style="width:52px;text-align:right;font-family:monospace;color:var(--t3);font-size:10px">${s.toLocaleString()}${trH}</div></div>`;
+  }).join(''):'<div class="empty">無零件資料</div>';
+
+  // Outsource
+  const osH=activeOS.length?activeOS.map(o=>{
+    const sq=gp(o,'sent_qty')||0,sd=gp(o,'sent_date')||'',st=gp(o,'status')||'',ov=gp(o,'is_overdue'),cc=gp(o,'color_code')||'',bn=gp(o,'batch_note')||'';
+    const col=ov?'var(--red)':'var(--orange)';
+    return`<div class="row"><div style="width:26px;height:26px;border-radius:6px;background:${col}11;color:${col};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0">${ov?'⚠':'⏳'}</div><div style="flex:1"><div style="font-weight:600">${st}${cc?' ・ '+cc:''}</div><div style="font-size:9px;color:var(--t3)">${sq.toLocaleString()} 件 ・ ${sd}${bn?' ・ '+bn:''}</div></div><div class="tag" style="background:${col}11;color:${col}">${ov?'逾期':'進行中'}</div></div>`;
+  }).join(''):'<div class="empty">無外包中零件</div>';
+
+  // Issues
+  const issH=issues.slice(0,6).length?issues.slice(0,6).map(i=>{
+    const tp=gp(i,'issue_type')||'',desc=gp(i,'description')||'',sev=gp(i,'severity')||'',st=gp(i,'status')||'';
+    const sc=sev==='嚴重'?'var(--red)':sev==='中等'?'var(--orange)':'var(--green)';
+    const stc=['已解決','已結案'].includes(st)?'var(--green)':st==='處理中'?'var(--orange)':'var(--red)';
+    return`<div class="row" style="align-items:flex-start"><div class="row-dot" style="background:${sc};margin-top:5px"></div><div style="flex:1;line-height:1.5"><strong>${tp}</strong><br>${desc}</div><div class="tag" style="background:${stc}11;color:${stc}">${st}</div></div>`;
+  }).join(''):'<div class="empty">無異常紀錄</div>';
+
+  // Suppliers
+  const supH=allSuppliers.length?allSuppliers.map(s=>{
+    const n=gp(s,'supplier_name')||'—',cap=gp(s,'monthly_capacity')||0,ld=gp(s,'current_load')||0,int=gp(s,'is_internal');
+    const pct=cap>0?Math.round(ld/cap*100):0;
+    const col=pct>90?'var(--red)':pct>70?'var(--orange)':'var(--green)';
+    return`<div class="row"><div style="flex:1;font-weight:500">${n}${int?' <span style="font-size:9px;color:var(--t4)">內製</span>':''}</div>${cap>0?`<div style="width:56px"><div class="bar-bg"><div class="bar-f" style="width:${pct}%;background:${col}"></div></div></div><div style="width:28px;text-align:right;font-family:monospace;font-weight:600;font-size:10px;color:${col}">${pct}%</div>`:'<div style="font-size:9px;color:var(--t4)">—</div>'}</div>`;
+  }).join(''):'<div class="empty">無外包廠資料</div>';
+
+  // Orders
+  const ordH=activeO.length?activeO.map(o=>{
+    const n=gp(o,'order_number')||gp(o,'product_name')||'—',tq=gp(o,'target_qty')||0,st=gp(o,'status')||'',due=gp(o,'due_date')||'';
+    const sc=st==='生產中'?'var(--orange)':st==='已排產'?'var(--blue)':'var(--t3)';
+    return`<div class="row"><div style="flex:1;font-weight:500">${n}</div><div style="font-family:monospace;color:var(--t3);font-size:10px">${tq.toLocaleString()}</div><div class="tag" style="background:${sc}11;color:${sc}">${st}</div>${due?`<div style="font-size:9px;color:var(--t4)">${due}</div>`:''}</div>`;
+  }).join(''):'<div class="empty">無進行中工單</div>';
+
+  // Grid layout
+  h+=`<div class="g g3 mb">
+    <div class="c cs"><div class="cl">零件庫存 <span style="color:var(--t4);font-weight:400">${parts.length}</span></div>${partsH}</div>
+    <div class="c cs"><div class="cl">外包追蹤 <span style="color:var(--t4);font-weight:400">${activeOS.length}</span></div>${osH}</div>
+    <div class="c cs"><div class="cl">異常紀錄${openI.length?` <span style="color:var(--red);font-weight:700">${openI.length} 未解決</span>`:''}</div>${issH}</div>
+  </div>`;
+  h+=`<div class="g g${isAll?'3':'2'} mb">
+    <div class="c cs"><div class="cl">外包廠負載</div>${supH}</div>
+    <div class="c cs"><div class="cl">工單 <span style="color:var(--t4);font-weight:400">${activeO.length}</span></div>${ordH}</div>
+    ${isAll?`<div class="c cs"><div class="cl">品牌資料筆數</div>${Object.keys(BC).map(b=>{
+      const cnt=fb(allParts,b).length;
+      const cfg=BC[b];
+      return`<div class="row"><div style="flex:1;font-weight:500">${cfg.i} ${b}</div><div style="font-family:monospace;font-size:10px;color:${cfg.c}">${cnt} 零件</div><div style="font-family:monospace;font-size:10px;color:var(--t3);width:50px;text-align:right">${fb(allOrders,b).filter(o=>!['已結案','已完工'].includes(gp(o,'status')||'')).length} 工單</div></div>`;
+    }).join('')}</div>`:''}
+  </div>`;
+
+  m.innerHTML=h;
+}
+</script>
+</body>
+</html>
