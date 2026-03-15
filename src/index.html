@@ -95,11 +95,11 @@
     <div class="nav-l">
       <div class="logo">益成金屬 <span>DICAS</span></div>
       <div class="tabs">
-        <button class="tab on" onclick="switchTab(this)">總覽</button>
-        <button class="tab" onclick="switchTab(this)">粹美</button>
-        <button class="tab" onclick="switchTab(this)">岸頭</button>
-        <button class="tab" onclick="switchTab(this)">風管</button>
-        <button class="tab" onclick="switchTab(this)">DICAS</button>
+        <button class="tab on" data-brand="" onclick="switchTab(this)">總覽</button>
+        <button class="tab" data-brand="粹美" onclick="switchTab(this)">粹美</button>
+        <button class="tab" data-brand="岸頭" onclick="switchTab(this)">岸頭</button>
+        <button class="tab" data-brand="風管" onclick="switchTab(this)">風管</button>
+        <button class="tab" data-brand="DICAS" onclick="switchTab(this)">DICAS</button>
       </div>
     </div>
     <div class="nav-r">
@@ -148,15 +148,45 @@ const DB_IDS = {
 const API_URL = '/.netlify/functions/notion-proxy';
 let PASSWORD = '';
 let CACHED_DATA = null;
-let CURRENT_TAB = '總覽'; // 當前選的品牌 tab
+let CURRENT_BRAND = ''; // 當前選的品牌，'' = 總覽
 
-const BRAND_MAP = {
-  '總覽': null,
-  '粹美': '粹美',
-  '岸頭': '岸頭', 
-  '風管': '風管',
-  'DICAS': 'DICAS'
+// 品牌關鍵字映射
+const BRAND_KEYWORDS = {
+  '粹美': ['粹美', 'Cuimei', '花生', '踩踩', '踩踩獸', 'CM-'],
+  '岸頭': ['岸頭', 'Antou', 'PenN', '筆', '筆夾', 'AT-'],
+  '風管': ['風管', 'FK-'],
+  'DICAS': ['DICAS', 'DC-']
 };
+
+// 判斷項目是否屬於某品牌
+function belongsToBrand(item, brand) {
+  if (!brand) return true; // 總覽顯示全部
+  
+  // 檢查 brand_tags（multi-select）
+  const tags = getProp(item, 'brand_tags') || [];
+  if (tags.includes(brand)) return true;
+  
+  // 檢查關鍵字
+  const name = getProp(item, 'part_name') || getProp(item, 'order_number') || getProp(item, 'description') || '';
+  const keywords = BRAND_KEYWORDS[brand] || [];
+  return keywords.some(kw => name.includes(kw));
+}
+
+// 按品牌篩選資料
+function filterByBrand(items, brand) {
+  if (!brand) return items;
+  return items.filter(item => belongsToBrand(item, brand));
+}
+
+// Tab 切換
+function switchTab(btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  btn.classList.add('on');
+  CURRENT_BRAND = btn.dataset.brand || '';
+  if (CACHED_DATA) {
+    renderDashboard(CACHED_DATA, CURRENT_BRAND);
+  }
+}
 
 // ===== PASSWORD GATE =====
 document.getElementById('pwInput').addEventListener('keydown', (e) => {
@@ -351,8 +381,8 @@ function renderError(msg) {
   `;
 }
 
-function renderDashboard(data) {
-  const currentBrand = CURRENT_TAB === '總覽' ? null : CURRENT_TAB;
+function renderDashboard(data, brandFilter = '') {
+  const isBrandView = !!brandFilter; // 有品牌過濾器就是品牌視圖
   
   // 解析資料
   let parts = getPages(data, 'parts_master');
@@ -366,54 +396,17 @@ function renderDashboard(data) {
   let quotes = getPages(data, 'quotations');
 
   // ===== 按品牌篩選 =====
-  if (currentBrand) {
-    // 零件：用 brand_tags 篩選
-    parts = parts.filter(p => {
-      const tags = getProp(p, 'brand_tags') || [];
-      return tags.includes(currentBrand);
-    });
-    
-    // 工單：透過 product -> line -> brand 篩選（簡化：用產品名稱或備註判斷）
-    orders = orders.filter(o => {
-      const notes = getProp(o, 'notes') || '';
-      const name = getProp(o, 'order_number') || '';
-      // 簡化：從工單名稱或備註判斷品牌
-      if (currentBrand === '粹美') return name.includes('CM') || notes.includes('粹美');
-      if (currentBrand === '岸頭') return name.includes('AT') || notes.includes('岸頭');
-      if (currentBrand === '風管') return name.includes('FK') || notes.includes('風管');
-      if (currentBrand === 'DICAS') return name.includes('DC') || notes.includes('DICAS');
-      return true;
-    });
-    
-    // 外包：用零件的品牌篩選
-    outsource = outsource.filter(o => {
-      const partName = getProp(o, 'part_name') || '';
-      // 簡化：用零件名稱判斷
-      if (currentBrand === '粹美') return partName.includes('CM') || partName.includes('花生') || partName.includes('踩踩');
-      if (currentBrand === '岸頭') return partName.includes('AT') || partName.includes('PenN') || partName.includes('筆');
-      if (currentBrand === '風管') return partName.includes('FK') || partName.includes('風管');
-      if (currentBrand === 'DICAS') return partName.includes('DC');
-      return true;
-    });
-    
-    // 異常：用描述判斷品牌
-    issues = issues.filter(i => {
-      const desc = getProp(i, 'description') || '';
-      if (currentBrand === '粹美') return desc.includes('粹美') || desc.includes('花生') || desc.includes('踩踩');
-      if (currentBrand === '岸頭') return desc.includes('岸頭') || desc.includes('PenN') || desc.includes('筆');
-      if (currentBrand === '風管') return desc.includes('風管');
-      if (currentBrand === 'DICAS') return desc.includes('DICAS');
-      return true;
-    });
-    
-    // 人員：用負責品牌篩選
+  if (brandFilter) {
+    parts = filterByBrand(parts, brandFilter);
+    orders = filterByBrand(orders, brandFilter);
+    stations = filterByBrand(stations, brandFilter);
+    outsource = filterByBrand(outsource, brandFilter);
+    issues = filterByBrand(issues, brandFilter);
     users = users.filter(u => {
       const respBrands = getProp(u, 'responsible_brands') || [];
-      return respBrands.includes(currentBrand);
+      return respBrands.includes(brandFilter);
     });
-    
-    // 品牌列表：只顯示當前選的
-    brands = brands.filter(b => getProp(b, 'brand_name') === currentBrand);
+    brands = brands.filter(b => getProp(b, 'brand_name') === brandFilter);
   }
 
   // === 計算 KPIs ===
@@ -538,16 +531,6 @@ function renderDashboard(data) {
       <div class="c cs"><div class="cl">異常紀錄 ${openIssues.length > 0 ? `<span style="color:var(--red);font-size:10px;font-weight:700;margin-left:4px">${openIssues.length} 未解決</span>` : ''}</div>${issuesHTML}</div>
     </div>
   `;
-}
-
-// Tab switching - now filters data by brand
-function switchTab(btn) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  btn.classList.add('on');
-  CURRENT_TAB = btn.textContent;
-  if (CACHED_DATA) {
-    renderDashboard(CACHED_DATA);
-  }
 }
 </script>
 
