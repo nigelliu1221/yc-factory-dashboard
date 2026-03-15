@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>益成金屬 DICAS — 工廠儀表板</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏭</text></svg>">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap');
+  :root{--bg:#f5f5f7;--card:#fff;--border:rgba(0,0,0,.06);--bs:rgba(0,0,0,.1);--t1:#1d1d1f;--t2:#424245;--t3:#86868b;--t4:#aeaeb2;--blue:#0071e3;--green:#34c759;--orange:#ff9500;--red:#ff3b30;--purple:#af52de;--teal:#5ac8fa;--sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.03);--r:16px}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,'Noto Sans TC','Helvetica Neue',sans-serif;background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased}
+
+  /* ===== PASSWORD GATE ===== */
+  #gate{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+  .gate-box{text-align:center;max-width:320px;padding:40px}
+  .gate-logo{font-size:48px;margin-bottom:16px}
+  .gate-title{font-size:22px;font-weight:600;margin-bottom:4px}
+  .gate-sub{font-size:13px;color:var(--t3);margin-bottom:24px}
+  .gate-input{width:100%;padding:12px 16px;border:1px solid var(--bs);border-radius:10px;font-size:15px;font-family:inherit;outline:none;text-align:center;background:var(--card);transition:.2s}
+  .gate-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.1)}
+  .gate-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:12px;font-family:inherit;transition:.2s}
+  .gate-btn:hover{background:#005bb5}
+  .gate-btn:disabled{background:var(--t4);cursor:not-allowed}
+  .gate-err{color:var(--red);font-size:12px;margin-top:8px;min-height:16px}
+
+  /* ===== LOADING ===== */
+  #loading{display:none;position:fixed;inset:0;background:var(--bg);z-index:9998;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+  .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .load-text{font-size:14px;color:var(--t3)}
+
+  /* ===== DASHBOARD (same styles as v4) ===== */
+  #dashboard{display:none}
+  .nav{background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:.5px solid var(--bs);position:sticky;top:0;z-index:100;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:52px}
+  .nav-l{display:flex;align-items:center;gap:20px}
+  .logo{font-size:17px;font-weight:600;letter-spacing:-.3px}.logo span{color:var(--t3);font-weight:400}
+  .tabs{display:flex;gap:3px}
+  .tab{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;border:none;background:0;color:var(--t3);cursor:pointer;transition:.2s;font-family:inherit}
+  .tab:hover{color:var(--t2);background:rgba(0,0,0,.03)}.tab.on{color:var(--t1);background:rgba(0,0,0,.05)}
+  .nav-r{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--t3)}
+  .dot-live{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(52,199,89,.3)}50%{box-shadow:0 0 0 5px rgba(52,199,89,0)}}
+
+  .main{padding:20px 32px 48px;max-width:1440px;margin:0 auto}
+  .sec{font-size:20px;font-weight:600;letter-spacing:-.3px;margin-bottom:12px}
+  .g{display:grid;gap:12px}.g5{grid-template-columns:repeat(5,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1fr 1fr}.g21{grid-template-columns:2fr 1fr}
+  .mb{margin-bottom:20px}
+  .c{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:.5px solid var(--border);overflow:hidden;transition:.25s}.c:hover{box-shadow:0 4px 14px rgba(0,0,0,.07);transform:translateY(-1px)}
+  .cp{padding:20px}.cs{padding:16px}
+  .cl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:6px}
+  .kv{font-size:32px;font-weight:700;letter-spacing:-1px;line-height:1.1}
+  .ks{font-size:12px;color:var(--t3);margin-top:4px}
+
+  /* Alert, Task, Pipeline, Inventory, Outsource, Issue, Cost, Log styles */
+  .al{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:500;margin-bottom:8px}
+  .al.w{background:rgba(255,149,0,.08);color:#b36800}.al.d{background:rgba(255,59,48,.06);color:var(--red)}
+  .al strong{font-weight:600}.al-t{flex:1}.al-b{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0}
+
+  .data-section{margin-bottom:24px}
+  .empty-state{padding:32px;text-align:center;color:var(--t3);font-size:13px}
+
+  /* Refresh button */
+  .refresh-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--bs);background:var(--card);color:var(--t2);cursor:pointer;font-family:inherit;transition:.2s;display:flex;align-items:center;gap:4px}
+  .refresh-btn:hover{background:rgba(0,0,0,.03)}
+  .refresh-btn.spinning .r-icon{animation:spin .8s linear infinite}
+  .r-icon{display:inline-block;font-size:14px}
+
+  @media(max-width:1100px){.g5,.g4{grid-template-columns:repeat(2,1fr)}.g3,.g2,.g21{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ===== PASSWORD GATE ===== -->
+<div id="gate">
+  <div class="gate-box">
+    <div class="gate-logo">🏭</div>
+    <div class="gate-title">益成金屬 DICAS</div>
+    <div class="gate-sub">工廠儀表板 — 請輸入密碼</div>
+    <input type="password" class="gate-input" id="pwInput" placeholder="密碼" autofocus>
+    <button class="gate-btn" id="pwBtn" onclick="tryLogin()">進入</button>
+    <div class="gate-err" id="pwErr"></div>
+  </div>
+</div>
+
+<!-- ===== LOADING ===== -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="load-text">正在從 Notion 載入資料...</div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="dashboard">
+  <div class="nav">
+    <div class="nav-l">
+      <div class="logo">益成金屬 <span>DICAS</span></div>
+      <div class="tabs">
+        <button class="tab on" onclick="switchTab(this)">總覽</button>
+        <button class="tab" onclick="switchTab(this)">粹美</button>
+        <button class="tab" onclick="switchTab(this)">岸頭</button>
+        <button class="tab" onclick="switchTab(this)">風管</button>
+        <button class="tab" onclick="switchTab(this)">DICAS</button>
+      </div>
+    </div>
+    <div class="nav-r">
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+        <span class="r-icon">↻</span> 重新整理
+      </button>
+      <div class="dot-live"></div>
+      <span id="timeDisplay"></span>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- 動態內容會由 JS 渲染到這裡 -->
+    <div id="alerts"></div>
+    <div id="kpis"></div>
+    <div id="brands"></div>
+    <div id="personnel"></div>
+    <div id="pipeline"></div>
+    <div id="details"></div>
+    <div id="logs"></div>
+  </div>
+</div>
+
+<script>
+// ===== CONFIG =====
+// 部署後在 Netlify 環境變數設定這些 Database ID
+// 本地開發時可以直接填入測試
+const DB_IDS = {
+  brands:             '', // DB-01
+  product_lines:      '', // DB-02
+  products:           '', // DB-03
+  parts_master:       '', // DB-04
+  bom:                '', // DB-05
+  inventory_log:      '', // DB-06
+  suppliers:          '', // DB-07
+  process_templates:  '', // DB-08
+  process_steps:      '', // DB-09
+  production_orders:  '', // DB-10
+  station_progress:   '', // DB-11
+  outsource_tracking: '', // DB-12
+  quotations:         '', // DB-13
+  issues:             '', // DB-14
+  bot_users:          '', // +1
+};
+
+const API_URL = '/.netlify/functions/notion-proxy';
+let PASSWORD = '';
+let CACHED_DATA = null;
+
+// ===== PASSWORD GATE =====
+document.getElementById('pwInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') tryLogin();
+});
+
+async function tryLogin() {
+  const pw = document.getElementById('pwInput').value;
+  const btn = document.getElementById('pwBtn');
+  const err = document.getElementById('pwErr');
+  
+  if (!pw) { err.textContent = '請輸入密碼'; return; }
+  
+  btn.disabled = true;
+  btn.textContent = '驗證中...';
+  err.textContent = '';
+  
+  try {
+    // 用一個簡單查詢測試密碼是否正確
+    const testDbId = Object.values(DB_IDS).find(id => id);
+    
+    if (!testDbId) {
+      // 如果還沒設定 DB_IDS，就直接驗證密碼格式
+      PASSWORD = pw;
+      showDashboard();
+      return;
+    }
+    
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Dashboard-Auth': pw },
+      body: JSON.stringify({ action: 'query', database_id: testDbId, page_size: 1 })
+    });
+    
+    if (res.status === 401) {
+      err.textContent = '密碼錯誤';
+      btn.disabled = false;
+      btn.textContent = '進入';
+      return;
+    }
+    
+    if (!res.ok) {
+      const data = await res.json();
+      err.textContent = data.error || '連線錯誤';
+      btn.disabled = false;
+      btn.textContent = '進入';
+      return;
+    }
+    
+    PASSWORD = pw;
+    // 密碼存到 sessionStorage，重新整理不用再輸入
+    sessionStorage.setItem('yc_pw', pw);
+    showDashboard();
+    
+  } catch (e) {
+    err.textContent = '無法連線到伺服器';
+    btn.disabled = false;
+    btn.textContent = '進入';
+  }
+}
+
+// 自動登入（如果 session 裡有密碼）
+(function autoLogin() {
+  const saved = sessionStorage.getItem('yc_pw');
+  if (saved) {
+    PASSWORD = saved;
+    showDashboard();
+  }
+})();
+
+// ===== SHOW DASHBOARD =====
+async function showDashboard() {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
+  
+  updateTime();
+  setInterval(updateTime, 60000);
+  
+  await loadAllData();
+  
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+}
+
+function updateTime() {
+  const now = new Date();
+  const days = ['日','一','二','三','四','五','六'];
+  const d = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('timeDisplay').textContent = `週${days[now.getDay()]} ${t} ・ ${d}`;
+}
+
+// ===== NOTION API CALLS =====
+async function notionQuery(action, params = {}) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Dashboard-Auth': PASSWORD },
+    body: JSON.stringify({ action, ...params })
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+async function loadAllData() {
+  try {
+    // 只查詢有設定 ID 的資料庫
+    const activeDBs = {};
+    for (const [key, id] of Object.entries(DB_IDS)) {
+      if (id) activeDBs[key] = id;
+    }
+    
+    if (Object.keys(activeDBs).length === 0) {
+      // 沒有設定任何 DB ID，顯示設定指引
+      renderSetupGuide();
+      return;
+    }
+    
+    CACHED_DATA = await notionQuery('dashboard_load', { database_ids: activeDBs });
+    renderDashboard(CACHED_DATA);
+    
+  } catch (e) {
+    console.error('Load error:', e);
+    renderError(e.message);
+  }
+}
+
+async function refreshData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  await loadAllData();
+  btn.classList.remove('spinning');
+}
+
+// ===== NOTION DATA HELPERS =====
+function getProp(page, name) {
+  const prop = page.properties[name];
+  if (!prop) return null;
+  switch (prop.type) {
+    case 'title': return prop.title.map(t => t.plain_text).join('');
+    case 'rich_text': return prop.rich_text.map(t => t.plain_text).join('');
+    case 'number': return prop.number;
+    case 'select': return prop.select?.name || null;
+    case 'multi_select': return prop.multi_select.map(s => s.name);
+    case 'checkbox': return prop.checkbox;
+    case 'date': return prop.date?.start || null;
+    case 'formula': 
+      if (prop.formula.type === 'number') return prop.formula.number;
+      if (prop.formula.type === 'string') return prop.formula.string;
+      return null;
+    case 'relation': return prop.relation.map(r => r.id);
+    case 'rollup': return prop.rollup;
+    case 'people': return prop.people.map(p => p.name);
+    case 'files': return prop.files.map(f => f.file?.url || f.external?.url);
+    default: return null;
+  }
+}
+
+function getPages(data, key) {
+  if (!data || !data[key] || data[key].error) return [];
+  return data[key].results || [];
+}
+
+// ===== RENDER FUNCTIONS =====
+function renderSetupGuide() {
+  document.querySelector('.main').innerHTML = `
+    <div class="c cp" style="max-width:640px;margin:40px auto">
+      <h2 style="font-size:20px;font-weight:600;margin-bottom:12px">👋 歡迎使用益成金屬儀表板</h2>
+      <p style="font-size:13px;color:var(--t2);line-height:1.8;margin-bottom:16px">
+        儀表板已成功部署！接下來需要設定 Notion 資料庫連接。
+      </p>
+      <div style="background:var(--bg);border-radius:10px;padding:16px;font-size:12px;color:var(--t2);line-height:1.8">
+        <strong>設定步驟：</strong><br>
+        1. 打開 <code>src/index.html</code> 找到 <code>DB_IDS</code> 區塊<br>
+        2. 把每張 Notion 資料庫的 ID 填進去<br>
+        3. 在 Netlify 環境變數設定 <code>NOTION_API_KEY</code> 和 <code>DASHBOARD_PASSWORD</code><br>
+        4. 重新部署<br><br>
+        <strong>取得 Database ID：</strong><br>
+        打開 Notion 資料庫 → 複製網址 → 網址中 <code>notion.so/</code> 後面那段 32 字元就是 ID<br>
+        例如：<code>notion.so/<strong>abc123def456...</strong>?v=xxx</code>
+      </div>
+    </div>
+  `;
+}
+
+function renderError(msg) {
+  document.querySelector('.main').innerHTML = `
+    <div class="c cp" style="max-width:480px;margin:40px auto;text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">⚠️</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:8px">載入失敗</div>
+      <div style="font-size:13px;color:var(--t3);margin-bottom:16px">${msg}</div>
+      <button class="refresh-btn" onclick="refreshData()" style="margin:0 auto">
+        <span class="r-icon">↻</span> 重試
+      </button>
+    </div>
+  `;
+}
+
+function renderDashboard(data) {
+  // 解析資料
+  const parts = getPages(data, 'parts_master');
+  const orders = getPages(data, 'production_orders');
+  const stations = getPages(data, 'station_progress');
+  const outsource = getPages(data, 'outsource_tracking');
+  const issues = getPages(data, 'issues');
+  const suppliers = getPages(data, 'suppliers');
+  const brands = getPages(data, 'brands');
+  const users = getPages(data, 'bot_users');
+  const quotes = getPages(data, 'quotations');
+
+  // === 計算 KPIs ===
+  const activeOrders = orders.filter(o => {
+    const s = getProp(o, 'status');
+    return s && !['已結案','已完工'].includes(s);
+  });
+  
+  const totalTarget = activeOrders.reduce((sum, o) => sum + (getProp(o, 'target_qty') || 0), 0);
+  
+  const completedStations = stations.filter(s => getProp(s, 'completed_at'));
+  const avgYield = completedStations.length > 0
+    ? (completedStations.reduce((sum, s) => sum + (getProp(s, 'station_yield') || 0), 0) / completedStations.length * 100).toFixed(1)
+    : '—';
+
+  const activeOutsource = outsource.filter(o => {
+    const s = getProp(o, 'status');
+    return s && ['已送出','加工中','待取回'].includes(s);
+  });
+  const totalOutsource = activeOutsource.reduce((sum, o) => sum + (getProp(o, 'sent_qty') || 0), 0);
+
+  const openIssues = issues.filter(i => {
+    const s = getProp(i, 'status');
+    return s && !['已解決','已結案'].includes(s);
+  });
+
+  // === Render ===
+  
+  // KPIs
+  document.getElementById('kpis').innerHTML = `
+    <div class="g g5 mb">
+      <div class="c cp"><div class="cl">進行中工單</div><div class="kv">${activeOrders.length}</div><div class="ks">${brands.map(b=>getProp(b,'brand_name')).filter(Boolean).join(' ・ ')}</div></div>
+      <div class="c cp"><div class="cl">目標產量</div><div class="kv" style="color:var(--blue)">${totalTarget.toLocaleString()}</div><div class="ks">所有進行中工單合計</div></div>
+      <div class="c cp"><div class="cl">整體良率</div><div class="kv" style="color:var(--green)">${avgYield}%</div><div class="ks">已完成工站平均</div></div>
+      <div class="c cp"><div class="cl">外包中</div><div class="kv" style="color:var(--orange)">${totalOutsource.toLocaleString()}</div><div class="ks">${activeOutsource.length} 筆追蹤中</div></div>
+      <div class="c cp"><div class="cl">未解決異常</div><div class="kv" style="color:var(--red)">${openIssues.length}</div><div class="ks">${openIssues.filter(i=>getProp(i,'severity')==='嚴重').length} 嚴重 ・ ${openIssues.filter(i=>getProp(i,'severity')==='中等').length} 中等</div></div>
+    </div>
+  `;
+
+  // Brands
+  const brandColors = {'粹美':'var(--orange)','岸頭':'var(--blue)','風管':'var(--teal)','DICAS':'var(--purple)'};
+  const brandIcons = {'粹美':'🦶','岸頭':'✒️','風管':'🔧','DICAS':'⭐'};
+  document.getElementById('brands').innerHTML = `
+    <div class="sec">品牌總覽</div>
+    <div class="g g4 mb">
+      ${brands.map(b => {
+        const name = getProp(b,'brand_name') || '—';
+        const color = brandColors[name] || 'var(--t3)';
+        const icon = brandIcons[name] || '📦';
+        const brandOrders = activeOrders.filter(o => {
+          // 簡化：用名稱匹配
+          return true; // TODO: 用 relation 匹配
+        });
+        return `<div class="c" style="padding:14px 16px;display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:10px;background:${color}11;color:${color};display:flex;align-items:center;justify-content:center;font-size:18px">${icon}</div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600">${name}</div><div style="font-size:10px;color:var(--t3);margin-top:1px">${getProp(b,'contact_person')||''}</div></div>
+          <div style="text-align:right"><div style="font-size:18px;font-weight:700;font-family:monospace;color:${color}">${getProp(b,'status')==='合作中'?'●':'○'}</div></div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+
+  // Parts Inventory
+  const partsHTML = parts.map(p => {
+    const name = getProp(p,'part_name') || '—';
+    const code = getProp(p,'part_number') || '';
+    const stock = getProp(p,'stock_qty') || 0;
+    const safety = getProp(p,'safety_stock') || 500;
+    const transit = getProp(p,'in_transit_qty') || 0;
+    const pct = safety > 0 ? Math.min((stock/safety)*100, 100) : 100;
+    const isDanger = stock < safety && transit === 0;
+    const isOut = transit > 0;
+    const color = isDanger ? 'var(--red)' : isOut ? 'var(--orange)' : pct < 60 ? 'var(--orange)' : 'var(--green)';
+    const badge = isDanger ? '<span style="color:var(--red);font-weight:700">!</span>' : isOut ? '<span style="color:var(--orange)">⏳</span>' : '<span style="color:var(--green)">✓</span>';
+    const trHTML = transit > 0 ? ` <span style="color:var(--orange);font-size:8px">+${transit.toLocaleString()}</span>` : '';
+    
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--border);font-size:11px">
+      <div style="width:16px;text-align:center;font-size:9px">${badge}</div>
+      <div style="flex:1;font-weight:500">${name} <span style="font-size:9px;color:var(--t4);font-family:monospace">${code}</span></div>
+      <div style="width:50px;height:4px;border-radius:2px;background:rgba(0,0,0,.05);overflow:hidden"><div style="height:100%;border-radius:2px;width:${pct}%;background:${color}"></div></div>
+      <div style="width:55px;text-align:right;font-family:monospace;color:var(--t3);font-size:10px">${stock.toLocaleString()}${trHTML}</div>
+    </div>`;
+  }).join('');
+
+  // Outsource Tracking
+  const osHTML = activeOutsource.map(o => {
+    const partName = getProp(o,'part_id')?.length > 0 ? '零件' : '—'; // TODO: resolve relation
+    const sentQty = getProp(o,'sent_qty') || 0;
+    const sentDate = getProp(o,'sent_date') || '';
+    const status = getProp(o,'status') || '';
+    const isOverdue = getProp(o,'is_overdue');
+    const color = isOverdue ? 'var(--red)' : 'var(--orange)';
+    
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--border)">
+      <div style="width:30px;height:30px;border-radius:7px;background:${color}11;color:${color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">${status === '加工中' ? '⏳' : '🚚'}</div>
+      <div style="flex:1"><div style="font-size:11px;font-weight:600">${status}</div><div style="font-size:9px;color:var(--t3)">${sentQty.toLocaleString()} 件 ・ ${sentDate}</div></div>
+      <div style="font-size:10px;color:${color};font-weight:600">${isOverdue ? '逾期' : '進行中'}</div>
+    </div>`;
+  }).join('') || '<div style="padding:16px;text-align:center;font-size:12px;color:var(--t3)">目前無外包中零件</div>';
+
+  // Issues
+  const issuesHTML = issues.slice(0, 5).map(i => {
+    const type = getProp(i,'issue_type') || '';
+    const desc = getProp(i,'description') || '';
+    const severity = getProp(i,'severity') || '';
+    const status = getProp(i,'status') || '';
+    const sevColor = severity === '嚴重' ? 'var(--red)' : severity === '中等' ? 'var(--orange)' : 'var(--green)';
+    const statColor = ['已解決','已結案'].includes(status) ? 'var(--green)' : status === '處理中' ? 'var(--orange)' : 'var(--red)';
+    
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:.5px solid var(--border)">
+      <div style="width:6px;height:6px;border-radius:50%;background:${sevColor};margin-top:5px;flex-shrink:0"></div>
+      <div style="flex:1;font-size:11px;color:var(--t2);line-height:1.5"><strong>${type}</strong><br>${desc}</div>
+      <div style="font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;background:${statColor}11;color:${statColor};flex-shrink:0">${status}</div>
+    </div>`;
+  }).join('') || '<div style="padding:16px;text-align:center;font-size:12px;color:var(--t3)">無異常紀錄</div>';
+
+  // Render details grid
+  document.getElementById('details').innerHTML = `
+    <div class="g g3 mb">
+      <div class="c cs"><div class="cl">零件庫存水位</div>${partsHTML}</div>
+      <div class="c cs"><div class="cl">外包追蹤</div>${osHTML}</div>
+      <div class="c cs"><div class="cl">異常紀錄 ${openIssues.length > 0 ? `<span style="color:var(--red);font-size:10px;font-weight:700;margin-left:4px">${openIssues.length} 未解決</span>` : ''}</div>${issuesHTML}</div>
+    </div>
+  `;
+}
+
+// Tab switching (visual only for now)
+function switchTab(btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  btn.classList.add('on');
+}
+</script>
+
+</body>
+</html>

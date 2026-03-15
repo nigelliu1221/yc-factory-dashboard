@@ -1,0 +1,8 @@
+{
+  "name": "yc-dashboard",
+  "version": "1.0.0",
+  "description": "益成金屬 DICAS 工廠儀表板",
+  "dependencies": {
+    "@notionhq/client": "^2.2.14"
+  }
+}
