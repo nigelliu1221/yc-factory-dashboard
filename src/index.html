@@ -166,10 +166,11 @@ async function tryLogin() {
   err.textContent = '';
   
   try {
+    // 用 dashboard_load 測試密碼
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Dashboard-Auth': pw },
-      body: JSON.stringify({ action: 'verify' })
+      body: JSON.stringify({ action: 'dashboard_load', database_ids: DB_IDS })
     });
     
     if (res.status === 401) {
